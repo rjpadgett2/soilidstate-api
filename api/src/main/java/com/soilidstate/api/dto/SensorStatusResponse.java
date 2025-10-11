@@ -8,6 +8,8 @@ public class SensorStatusResponse {
     private String sensorType;
     private String sensorName;
     private Integer hubPort;
+    private Double value;
+    private String unit;
     private Integer channel;
     private boolean attached;
     private String status;

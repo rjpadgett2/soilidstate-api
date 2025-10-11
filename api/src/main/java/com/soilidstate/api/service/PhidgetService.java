@@ -4,7 +4,6 @@ import com.phidget22.*;
 import com.soilidstate.api.dto.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -16,8 +15,6 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class PhidgetService {
 
-    private final SimpMessagingTemplate messagingTemplate;
-
     private Net net;
     private boolean connected = false;
     private String currentServer;
@@ -26,6 +23,7 @@ public class PhidgetService {
 
     private final Map<String, Phidget> sensors = new ConcurrentHashMap<>();
     private final Map<String, SensorMetadata> sensorMetadata = new ConcurrentHashMap<>();
+    private final Map<String, SensorDataResponse> latestSensorData = new ConcurrentHashMap<>();
 
     public ConnectionStatusResponse connect(ConnectionRequest request) throws PhidgetException {
         if (connected) {
@@ -77,8 +75,10 @@ public class PhidgetService {
         }
         sensors.clear();
         sensorMetadata.clear();
+        latestSensorData.clear();
 
         if (net != null) {
+            Net.disableServerDiscovery(ServerType.DEVICE_REMOTE);
             Net.disableServerDiscovery(ServerType.DEVICE_REMOTE);
         }
 
@@ -161,12 +161,12 @@ public class PhidgetService {
     private void attachEventHandlers(Phidget sensor, String sensorId, SensorRegistrationRequest request) {
         sensor.addAttachListener(event -> {
             log.info("Sensor {} attached", sensorId);
-            publishSensorData(sensorId, null, true);
+            updateSensorData(sensorId, null, true);
         });
 
         sensor.addDetachListener(event -> {
             log.warn("Sensor {} detached", sensorId);
-            publishSensorData(sensorId, null, false);
+            updateSensorData(sensorId, null, false);
         });
 
         attachDataChangeHandlers(sensor, sensorId, request.getSensorType());
@@ -175,35 +175,35 @@ public class PhidgetService {
     private void attachDataChangeHandlers(Phidget sensor, String sensorId, String sensorType) {
         switch (sensorType.toUpperCase()) {
             case "VOLTAGE" -> ((VoltageInput) sensor).addVoltageChangeListener(event ->
-                    publishSensorData(sensorId, event.getVoltage(), true));
+                    updateSensorData(sensorId, event.getVoltage(), true));
 
             case "VOLTAGERATIO" -> ((VoltageRatioInput) sensor).addVoltageRatioChangeListener(event ->
-                    publishSensorData(sensorId, event.getVoltageRatio(), true));
+                    updateSensorData(sensorId, event.getVoltageRatio(), true));
 
             case "TEMPERATURE" -> ((TemperatureSensor) sensor).addTemperatureChangeListener(event ->
-                    publishSensorData(sensorId, event.getTemperature(), true));
+                    updateSensorData(sensorId, event.getTemperature(), true));
 
             case "HUMIDITY" -> ((HumiditySensor) sensor).addHumidityChangeListener(event ->
-                    publishSensorData(sensorId, event.getHumidity(), true));
+                    updateSensorData(sensorId, event.getHumidity(), true));
 
             case "DIGITALINPUT" -> ((DigitalInput) sensor).addStateChangeListener(event ->
-                    publishSensorData(sensorId, event.getState() ? 1.0 : 0.0, true));
+                    updateSensorData(sensorId, event.getState() ? 1.0 : 0.0, true));
 
             case "DISTANCESENSOR" -> ((DistanceSensor) sensor).addDistanceChangeListener(event ->
-                    publishSensorData(sensorId, (double) event.getDistance(), true));
+                    updateSensorData(sensorId, (double) event.getDistance(), true));
 
             case "LIGHTSENSOR" -> ((LightSensor) sensor).addIlluminanceChangeListener(event ->
-                    publishSensorData(sensorId, event.getIlluminance(), true));
+                    updateSensorData(sensorId, event.getIlluminance(), true));
 
             case "SOUNDSENSOR" -> ((SoundSensor) sensor).addSPLChangeListener(event ->
-                    publishSensorData(sensorId, event.getDB()  , true));
+                    updateSensorData(sensorId, event.getDB(), true));
 
             case "PRESSURESENSOR" -> ((PressureSensor) sensor).addPressureChangeListener(event ->
-                    publishSensorData(sensorId, event.getPressure(), true));
+                    updateSensorData(sensorId, event.getPressure(), true));
         }
     }
 
-    private void publishSensorData(String sensorId, Double value, boolean attached) {
+    private void updateSensorData(String sensorId, Double value, boolean attached) {
         SensorMetadata metadata = sensorMetadata.get(sensorId);
         if (metadata == null) return;
 
@@ -218,15 +218,15 @@ public class PhidgetService {
         response.setTimestamp(System.currentTimeMillis());
         response.setAttached(attached);
 
-        messagingTemplate.convertAndSend("/topic/sensor-data", response);
+        latestSensorData.put(sensorId, response);
     }
 
     private String getUnit(String sensorType) {
         return switch (sensorType.toUpperCase()) {
-            case "VOLTAGE" -> "V";
-            case "VOLTAGERATIO" -> "V/V";
             case "TEMPERATURE" -> "°C";
             case "HUMIDITY" -> "%";
+            case "VOLTAGE" -> "V";
+            case "VOLTAGERATIO" -> "V/V";
             case "DIGITALINPUT", "DIGITALOUTPUT" -> "binary";
             case "DISTANCESENSOR" -> "mm";
             case "LIGHTSENSOR" -> "lux";
@@ -242,6 +242,7 @@ public class PhidgetService {
             sensor.close();
             sensors.remove(sensorId);
             sensorMetadata.remove(sensorId);
+            latestSensorData.remove(sensorId);
             log.info("Unregistered sensor: {}", sensorId);
         }
     }
@@ -267,6 +268,20 @@ public class PhidgetService {
         }
 
         return statusMap;
+    }
+
+    /**
+     * Get latest sensor data for all sensors
+     */
+    public Map<String, SensorDataResponse> getLatestSensorData() {
+        return new ConcurrentHashMap<>(latestSensorData);
+    }
+
+    /**
+     * Get latest data for a specific sensor
+     */
+    public SensorDataResponse getSensorData(String sensorId) {
+        return latestSensorData.get(sensorId);
     }
 
     private record SensorMetadata(String type, String name, Integer hubPort, Integer channel) {}

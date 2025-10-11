@@ -1,0 +1,56 @@
+<div class="sensor-card" [style.--sensor-color]="sensorColor()">
+  <!-- Header -->
+  <div class="card-header">
+    <div class="sensor-info">
+      <div class="sensor-icon" [style.background-color]="sensorColor() + '33'">
+        <span class="material-icons" [style.color]="sensorColor()">
+          {{ sensorIcon() }}
+        </span>
+      </div>
+      <div class="sensor-details">
+        <h3 class="sensor-name">{{ sensor().sensorName }}</h3>
+        <p class="sensor-type">{{ sensor().sensorType }}</p>
+      </div>
+    </div>
+    <div class="status-indicator" [class.connected]="sensor().attached"></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Value Display -->
+  <div class="value-section">
+    <div class="value-display">
+      <span class="value" [style.color]="sensorColor()">
+        {{ formattedValue() }}
+      </span>
+      @if (sensor().unit) {
+      <span class="unit">{{ sensor().unit }}</span>
+      }
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- Footer -->
+  <div class="card-footer">
+    <div class="detail-item">
+      <span class="material-icons">router</span>
+      <div class="detail-text">
+        <span class="label">Port</span>
+        <span class="value">{{ sensor().hubPort }}</span>
+      </div>
+    </div>
+    <div class="detail-item">
+      <span class="material-icons">tag</span>
+      <div class="detail-text">
+        <span class="label">Channel</span>
+        <span class="value">{{ sensor().channel }}</span>
+      </div>
+    </div>
+    @if (sensor().attached) {
+    <div class="timestamp">
+    {{ timeAgo() }}
+    </div>
+    }
+  </div>
+</div>

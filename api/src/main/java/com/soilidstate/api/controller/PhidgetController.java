@@ -88,4 +88,38 @@ public class PhidgetController {
                     .body(new ErrorResponse("GET_SENSORS_FAILED", e.getMessage()));
         }
     }
+
+    /**
+     * NEW: Get latest sensor data for all sensors
+     */
+    @GetMapping("/sensors/data")
+    public ResponseEntity<?> getAllSensorData() {
+        try {
+            Map<String, SensorDataResponse> sensorData = phidgetService.getLatestSensorData();
+            return ResponseEntity.ok(sensorData);
+        } catch (Exception e) {
+            log.error("Failed to get sensor data", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("GET_SENSOR_DATA_FAILED", e.getMessage()));
+        }
+    }
+
+    /**
+     * NEW: Get latest data for a specific sensor
+     */
+    @GetMapping("/sensors/{sensorId}/data")
+    public ResponseEntity<?> getSensorData(@PathVariable String sensorId) {
+        try {
+            SensorDataResponse data = phidgetService.getSensorData(sensorId);
+            if (data == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(new ErrorResponse("SENSOR_NOT_FOUND", "Sensor with ID " + sensorId + " not found"));
+            }
+            return ResponseEntity.ok(data);
+        } catch (Exception e) {
+            log.error("Failed to get sensor data for sensor: {}", sensorId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new ErrorResponse("GET_SENSOR_DATA_FAILED", e.getMessage()));
+        }
+    }
 }
