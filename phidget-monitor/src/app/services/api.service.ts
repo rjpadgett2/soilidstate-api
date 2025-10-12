@@ -1,12 +1,15 @@
-
+// src/app/services/api.service.ts - Updated with sensor registration
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import {
   ConnectionRequest,
-  ConnectionStatus, Sensor,
-  SensorStatus
+  ConnectionStatus,
+  SensorStatus,
+  Sensor,
+  SensorRegistrationRequest,
+  SensorRegistrationResponse
 } from '../models/sensor.model';
 
 @Injectable({
@@ -65,7 +68,7 @@ export class ApiService {
   }
 
   /**
-   * NEW: Get latest sensor data for all sensors
+   * Get latest sensor data for all sensors
    */
   getAllSensorData(): Observable<{ [key: string]: Sensor }> {
     return this.http.get<{ [key: string]: Sensor }>(
@@ -76,11 +79,34 @@ export class ApiService {
   }
 
   /**
-   * NEW: Get latest data for a specific sensor
+   * Get latest data for a specific sensor
    */
   getSensorData(sensorId: string): Observable<Sensor> {
     return this.http.get<Sensor>(
       `${this.baseUrl}/sensors/${sensorId}/data`
+    ).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  /**
+   * NEW: Register a new sensor
+   */
+  registerSensor(request: SensorRegistrationRequest): Observable<SensorRegistrationResponse> {
+    return this.http.post<SensorRegistrationResponse>(
+      `${this.baseUrl}/sensors/register`,
+      request
+    ).pipe(
+      catchError(this.handleError)
+    );
+  }
+
+  /**
+   * NEW: Unregister a sensor
+   */
+  unregisterSensor(sensorId: string): Observable<any> {
+    return this.http.delete(
+      `${this.baseUrl}/sensors/${sensorId}`
     ).pipe(
       catchError(this.handleError)
     );

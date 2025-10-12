@@ -1,4 +1,4 @@
-
+// src/app/models/sensor.model.ts
 export interface Sensor {
   sensorId: string;
   sensorType: string;
@@ -30,8 +30,24 @@ export interface SensorStatus {
   sensorType: string;
   sensorName: string;
   hubPort: number;
-  value: number | null;
-  unit: string;
+  channel: number;
+  attached: boolean;
+  status: string;
+}
+
+export interface SensorRegistrationRequest {
+  sensorType: string;
+  hubPort: number;
+  channel: number;
+  serialNumber?: number;
+  sensorName: string;
+}
+
+export interface SensorRegistrationResponse {
+  sensorId: string;
+  sensorType: string;
+  sensorName: string;
+  hubPort: number;
   channel: number;
   attached: boolean;
   status: string;
@@ -42,6 +58,19 @@ export interface ApiError {
   message: string;
   timestamp: number;
 }
+
+export const SENSOR_TYPES = [
+  { value: 'TEMPERATURE', label: 'Temperature Sensor', unit: '°C', icon: 'thermostat' },
+  { value: 'HUMIDITY', label: 'Humidity Sensor', unit: '%', icon: 'water_drop' },
+  { value: 'VOLTAGE', label: 'Voltage Input', unit: 'V', icon: 'bolt' },
+  { value: 'VOLTAGERATIO', label: 'Voltage Ratio Input', unit: 'V/V', icon: 'electric_bolt' },
+  { value: 'DIGITALINPUT', label: 'Digital Input', unit: '', icon: 'toggle_on' },
+  { value: 'DIGITALOUTPUT', label: 'Digital Output', unit: '', icon: 'power_settings_new' },
+  { value: 'DISTANCESENSOR', label: 'Distance Sensor', unit: 'mm', icon: 'straighten' },
+  { value: 'LIGHTSENSOR', label: 'Light Sensor', unit: 'lux', icon: 'wb_sunny' },
+  { value: 'SOUNDSENSOR', label: 'Sound Sensor', unit: 'dB', icon: 'graphic_eq' },
+  { value: 'PRESSURESENSOR', label: 'Pressure Sensor', unit: 'kPa', icon: 'speed' }
+];
 
 export const SENSOR_COLORS: { [key: string]: string } = {
   'TEMPERATURE': '#ff6b6b',

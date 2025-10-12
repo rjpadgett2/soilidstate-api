@@ -14,6 +14,14 @@
       </div>
 
       <div class="header-right">
+        @if (isConnected()) {
+        <button
+          class="btn btn-success"
+          (click)="openRegistrationModal()">
+          <span class="material-icons">add</span>
+          Add Sensor
+        </button>
+        }
         <button
           class="btn btn-primary"
           (click)="isConnected() ? disconnect() : openConnectionModal()"
@@ -76,10 +84,11 @@
       <div class="empty-state-content">
         <span class="material-icons empty-icon">sensor_occupied</span>
         <h2>No Sensors Registered</h2>
-        <p>Use the REST API to register sensors and they'll appear here automatically</p>
-        <div class="code-example">
-          <code>POST /api/phidget/sensors/register</code>
-        </div>
+        <p>Click "Add Sensor" to register your first Phidget sensor</p>
+        <button class="btn btn-large btn-success" (click)="openRegistrationModal()">
+          <span class="material-icons">add</span>
+          Add Your First Sensor
+        </button>
       </div>
     </div>
     }
@@ -88,7 +97,10 @@
     @if (!isCheckingConnection() && isConnected() && sensorCount() > 0) {
     <div class="sensors-grid">
       @for (sensor of sensors(); track sensor.sensorId) {
-    <app-sensor-card [sensor]="sensor"></app-sensor-card>
+    <app-sensor-card
+      [sensor]="sensor"
+      (delete)="onDeleteSensor(sensor.sensorId, sensor.sensorName)">
+    </app-sensor-card>
     }
     </div>
     }
@@ -101,5 +113,14 @@
     (connect)="onConnect($event)"
     (close)="closeConnectionModal()">
   </app-connection-modal>
+  }
+
+  <!-- Sensor Registration Modal -->
+  @if (showRegistrationModal()) {
+  <app-sensor-registration-modal
+    [isLoading]="isRegistering()"
+    (register)="onRegisterSensor($event)"
+    (close)="closeRegistrationModal()">
+  </app-sensor-registration-modal>
   }
 </div>

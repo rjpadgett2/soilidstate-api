@@ -1,4 +1,9 @@
 <div class="sensor-card" [style.--sensor-color]="sensorColor()">
+  <!-- Delete Button -->
+  <button class="delete-btn" (click)="onDelete()" title="Unregister sensor">
+    <span class="material-icons">close</span>
+  </button>
+
   <!-- Header -->
   <div class="card-header">
     <div class="sensor-info">

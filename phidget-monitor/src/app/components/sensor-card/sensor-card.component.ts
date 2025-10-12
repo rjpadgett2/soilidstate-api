@@ -1,5 +1,4 @@
-
-import { Component, input, computed } from '@angular/core';
+import { Component, input, computed, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Sensor, SENSOR_COLORS, SENSOR_ICONS } from '../../models/sensor.model';
 
@@ -13,6 +12,9 @@ import { Sensor, SENSOR_COLORS, SENSOR_ICONS } from '../../models/sensor.model';
 export class SensorCardComponent {
   // Angular 20: Using input signals (new required input syntax)
   sensor = input.required<Sensor>();
+
+  // Angular 20: Output for delete action
+  delete = output<void>();
 
   // Computed signals for derived values
   sensorColor = computed(() =>
@@ -41,4 +43,8 @@ export class SensorCardComponent {
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
     return `${Math.floor(seconds / 86400)}d ago`;
   });
+
+  onDelete(): void {
+    this.delete.emit();
+  }
 }

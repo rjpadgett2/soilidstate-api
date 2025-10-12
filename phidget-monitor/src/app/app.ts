@@ -1,13 +1,12 @@
-
 import { Component, OnInit, OnDestroy, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
-import {interval, Subject, switchMap} from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { interval, Subject } from 'rxjs';
+import { takeUntil, switchMap } from 'rxjs/operators';
 import { ApiService } from './services/api.service';
 import { ConnectionModalComponent } from './components/connection-modal/connection-modal.component';
+import { SensorRegistrationModalComponent } from './components/sensor-registration-modal/sensor-registration-modal.component';
 import { SensorCardComponent } from './components/sensor-card/sensor-card.component';
-import { Sensor} from './models/sensor.model';
+import { Sensor, SensorStatus } from './models/sensor.model';
 
 @Component({
   selector: 'app-root',
@@ -15,6 +14,7 @@ import { Sensor} from './models/sensor.model';
   imports: [
     CommonModule,
     ConnectionModalComponent,
+    SensorRegistrationModalComponent,
     SensorCardComponent
   ],
   templateUrl: './app.html',
@@ -26,8 +26,10 @@ export class AppComponent implements OnInit, OnDestroy {
   isConnected = signal(false);
   serverAddress = signal('');
   showConnectionModal = signal(false);
+  showRegistrationModal = signal(false);
   isLoading = signal(false);
   isCheckingConnection = signal(true);
+  isRegistering = signal(false);
 
   // Computed signal for sensor count
   sensorCount = computed(() => this.sensors().length);
@@ -145,6 +147,58 @@ export class AppComponent implements OnInit, OnDestroy {
 
   closeConnectionModal(): void {
     this.showConnectionModal.set(false);
+  }
+
+  openRegistrationModal(): void {
+    this.showRegistrationModal.set(true);
+  }
+
+  closeRegistrationModal(): void {
+    this.showRegistrationModal.set(false);
+  }
+
+  onRegisterSensor(sensorData: {
+    sensorType: string;
+    hubPort: number;
+    channel: number;
+    serialNumber?: number;
+    sensorName: string;
+  }): void {
+    this.isRegistering.set(true);
+
+    this.apiService.registerSensor(sensorData).subscribe({
+      next: (response) => {
+        console.log('Sensor registered:', response);
+        this.showRegistrationModal.set(false);
+        this.isRegistering.set(false);
+
+        // Immediately fetch updated sensor list
+        this.fetchSensorsAndData();
+      },
+      error: (error) => {
+        console.error('Sensor registration failed:', error);
+        this.isRegistering.set(false);
+        alert('Registration failed: ' + error.message);
+      }
+    });
+  }
+
+  onDeleteSensor(sensorId: string, sensorName: string): void {
+    if (confirm(`Are you sure you want to unregister "${sensorName}"?`)) {
+      this.apiService.unregisterSensor(sensorId).subscribe({
+        next: () => {
+          console.log('Sensor unregistered:', sensorId);
+          // Remove from local list immediately
+          this.sensors.update(sensors =>
+            sensors.filter(s => s.sensorId !== sensorId)
+          );
+        },
+        error: (error) => {
+          console.error('Failed to unregister sensor:', error);
+          alert('Failed to unregister sensor: ' + error.message);
+        }
+      });
+    }
   }
 
   private startPolling(): void {

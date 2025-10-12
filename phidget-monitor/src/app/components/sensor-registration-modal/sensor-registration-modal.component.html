@@ -1,0 +1,144 @@
+<div class="modal-overlay" (click)="onClose()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="header-icon">
+        <span class="material-icons">add_circle</span>
+      </div>
+      <h2>Register New Sensor</h2>
+      <p>Configure a new Phidget sensor to monitor</p>
+    </div>
+
+    <form (ngSubmit)="onSubmit()" class="registration-form">
+      <!-- Sensor Type Selection -->
+      <div class="form-group">
+        <label for="sensorType">
+          <span class="material-icons">{{ selectedSensor()?.icon || 'sensors' }}</span>
+          Sensor Type
+        </label>
+        <select
+          id="sensorType"
+          [(ngModel)]="sensorType"
+          name="sensorType"
+          (change)="onSensorTypeChange($any($event.target).value)"
+          [disabled]="isLoading()"
+          required
+        >
+          @for (type of sensorTypes; track type.value) {
+          <option [value]="type.value">
+          {{ type.label }} @if (type.unit) { ({{ type.unit }}) }
+          </option>
+          }
+        </select>
+      </div>
+
+      <!-- Sensor Name -->
+      <div class="form-group">
+        <label for="sensorName">
+          <span class="material-icons">label</span>
+          Sensor Name
+        </label>
+        <input
+          type="text"
+          id="sensorName"
+          [(ngModel)]="sensorName"
+          name="sensorName"
+          placeholder="e.g., Living Room Temperature"
+          autocomplete="off"
+          [disabled]="isLoading()"
+          required
+        />
+      </div>
+
+      <!-- Hub Port and Channel -->
+      <div class="form-row">
+        <div class="form-group">
+          <label for="hubPort">
+            <span class="material-icons">router</span>
+            Hub Port
+          </label>
+          <input
+            type="number"
+            id="hubPort"
+            [(ngModel)]="hubPort"
+            name="hubPort"
+            placeholder="0-5"
+            min="0"
+            max="5"
+            [disabled]="isLoading()"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="channel">
+            <span class="material-icons">tag</span>
+            Channel
+          </label>
+          <input
+            type="number"
+            id="channel"
+            [(ngModel)]="channel"
+            name="channel"
+            placeholder="0"
+            min="0"
+            [disabled]="isLoading()"
+            required
+          />
+        </div>
+      </div>
+
+      <!-- Serial Number (Optional) -->
+      <div class="form-group">
+        <label for="serialNumber">
+          <span class="material-icons">confirmation_number</span>
+          Serial Number (Optional)
+        </label>
+        <input
+          type="number"
+          id="serialNumber"
+          [(ngModel)]="serialNumber"
+          name="serialNumber"
+          placeholder="Leave empty for auto-detect"
+          autocomplete="off"
+          [disabled]="isLoading()"
+        />
+      </div>
+
+      <!-- Help Info -->
+      <div class="info-box">
+        <span class="material-icons">info</span>
+        <div>
+          <strong>Connection Guide:</strong>
+          <p>Hub Port: Physical port on VINT Hub (0-5)</p>
+          <p>Channel: Sensor channel (usually 0)</p>
+          <p>Serial: Specific device ID (optional)</p>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="modal-actions">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          (click)="onClose()"
+          [disabled]="isLoading()"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          class="btn btn-primary"
+          [disabled]="!canRegister() || isLoading()"
+        >
+          @if (!isLoading()) {
+          <span class="material-icons">add</span>
+          }
+          @if (isLoading()) {
+          <span class="spinner"></span>
+          }
+          {{ isLoading() ? 'Registering...' : 'Register Sensor' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
