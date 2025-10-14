@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, signal, computed, effect } from '@angular/core';
+import {Component, OnInit, OnDestroy, signal, computed, effect, inject} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { interval, Subject } from 'rxjs';
 import { takeUntil, switchMap } from 'rxjs/operators';
@@ -7,6 +7,7 @@ import { ConnectionModalComponent } from './components/connection-modal/connecti
 import { SensorRegistrationModalComponent } from './components/sensor-registration-modal/sensor-registration-modal.component';
 import { SensorCardComponent } from './components/sensor-card/sensor-card.component';
 import { Sensor, SensorStatus } from './models/sensor.model';
+import {AuthService} from '@auth0/auth0-angular';
 
 @Component({
   selector: 'app-root',
@@ -21,6 +22,8 @@ import { Sensor, SensorStatus } from './models/sensor.model';
   styleUrls: ['./app.css']
 })
 export class AppComponent implements OnInit, OnDestroy {
+  private auth = inject(AuthService);
+
   // Angular 20: Using Signals for reactive state management
   sensors = signal<Sensor[]>([]);
   isConnected = signal(false);
@@ -31,11 +34,16 @@ export class AppComponent implements OnInit, OnDestroy {
   isCheckingConnection = signal(true);
   isRegistering = signal(false);
 
+  // Auth state
+  isAuthenticated = signal(false);
+  isAuthLoading = signal(true);
+  user = signal<any>(null);
+
   // Computed signal for sensor count
   sensorCount = computed(() => this.sensors().length);
 
   private destroy$ = new Subject<void>();
-  private pollingInterval = 1000; // Poll every 1 second for real-time feel
+  private pollingInterval = 1000;
   private readonly STORAGE_KEY = 'phidget_connection';
 
   constructor(
@@ -51,13 +59,49 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // Check for existing connection on startup
-    this.checkExistingConnection();
+    // Subscribe to Auth0 authentication state
+    this.auth.isAuthenticated$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(isAuth => {
+        this.isAuthenticated.set(isAuth);
+        this.isAuthLoading.set(false);
+
+        if (isAuth) {
+          // User is authenticated, check for existing connection
+          this.checkExistingConnection();
+        } else {
+          this.isCheckingConnection.set(false);
+        }
+      });
+
+    // Subscribe to user info
+    this.auth.user$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(user => {
+        this.user.set(user);
+        if (user) {
+          console.log('Logged in as:', user.email);
+        }
+      });
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  // Auth methods
+  login(): void {
+    this.auth.loginWithRedirect();
+  }
+
+  logout(): void {
+    this.auth.logout({
+      logoutParams: {
+        returnTo: window.location.origin
+      }
+    });
+    this.cleanup();
   }
 
   /**
@@ -361,3 +405,4 @@ export class AppComponent implements OnInit, OnDestroy {
     return units[sensorType.toUpperCase()] || '';
   }
 }
+

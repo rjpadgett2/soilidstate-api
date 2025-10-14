@@ -1,0 +1,109 @@
+spring:
+  application:
+    name: phidget-api
+
+  # Crunchy Bridge PostgreSQL Configuration
+  datasource:
+    url: jdbc:postgresql://p.fzy4hr3yybbkpawkjfdri2zvua.db.postgresbridge.com/postgres?user=postgres&password=3ov6DwCwJVj3Ro7f25rIKNiA1FZkjlHJSF64K707HNgoL10DvKhYoPpQpWoYfSIP&ssl=require
+    username: postgres
+    password: 3ov6DwCwJVj3Ro7f25rIKNiA1FZkjlHJSF64K707HNgoL10DvKhYoPpQpWoYfSIP
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      # Crunchy Bridge specific settings
+      connection-init-sql: SELECT 1
+      validation-timeout: 3000
+      leak-detection-threshold: 60000
+
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false  # Set to false in production
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+    open-in-view: false
+
+  # Flyway Database Migrations
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    # Crunchy Bridge runs on postgres database by default
+    default-schema: public
+
+  # OAuth2 Resource Server Configuration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://dev-rvtdlwraphwqkmke.us.auth0.com/
+          audiences: https://api.phidget.pasture.com
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.phidget.api: INFO
+    org.springframework.security: INFO
+    # Don't log SQL in production
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+
+# JSON Configuration
+spring.jackson:
+  serialization:
+    write-dates-as-timestamps: false
+    indent-output: true
+
+# Actuator with Crunchy Bridge metrics
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    tags:
+      application: phidget-api
+      database: crunchy-bridge
+
+---
+# Development Profile (Optional - for local testing)
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:postgresql://localhost:5432/phidgetdb
+    username: phidget_user
+    password: phidget_password
+  jpa:
+    show-sql: true
+    security:
+      oauth2:
+        resourceserver:
+          jwt:
+            issuer-uri: https://dev-rvtdlwraphwqkmke.us.auth0.com/
+
+---
+# Production Profile
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    # Use environment variables for production
+    url: ${CRUNCHY_DATABASE_URL}
+    username: ${CRUNCHY_DATABASE_USERNAME}
+    password: ${CRUNCHY_DATABASE_PASSWORD}
+  jpa:
+    show-sql: false

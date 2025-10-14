@@ -1,4 +1,47 @@
 <div class="app-container">
+  <!-- Loading Auth State -->
+  @if (isAuthLoading()) {
+  <div class="auth-loading">
+    <div class="spinner-large"></div>
+    <h2>Loading...</h2>
+  </div>
+  }
+
+  <!-- Not Authenticated - Show Login -->
+  @if (!isAuthLoading() && !isAuthenticated()) {
+  <div class="login-screen">
+    <div class="login-content">
+      <div class="login-icon">
+        <span class="material-icons">sensors</span>
+      </div>
+      <h1>Phidget Monitor</h1>
+      <p class="tagline">Monitor your Phidget sensors in real-time</p>
+
+      <button class="btn btn-large btn-gradient" (click)="login()">
+        <span class="material-icons">login</span>
+        Sign In with Auth0
+      </button>
+
+      <div class="features">
+        <div class="feature">
+          <span class="material-icons">lock</span>
+          <span>Secure OAuth2 Authentication</span>
+        </div>
+        <div class="feature">
+          <span class="material-icons">cloud</span>
+          <span>Cloud-based Data Storage</span>
+        </div>
+        <div class="feature">
+          <span class="material-icons">sensors</span>
+          <span>Real-time Sensor Monitoring</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  }
+
+  <!-- Authenticated - Show App -->
+  @if (!isAuthLoading() && isAuthenticated()) {
   <!-- Header -->
   <header class="header">
     <div class="header-content">
@@ -10,100 +53,115 @@
         <div class="status-badge" [class.connected]="isConnected()">
           <span class="status-dot"></span>
           <span class="status-text">{{ isConnected() ? 'Connected' : 'Disconnected' }}</span>
+          </div>
         </div>
-      </div>
 
-      <div class="header-right">
-        @if (isConnected()) {
-        <button
-          class="btn btn-success"
-          (click)="openRegistrationModal()">
-          <span class="material-icons">add</span>
-          Add Sensor
-        </button>
-        }
-        <button
-          class="btn btn-primary"
-          (click)="isConnected() ? disconnect() : openConnectionModal()"
-          [disabled]="isCheckingConnection()">
-          <span class="material-icons">{{ isConnected() ? 'link_off' : 'link' }}</span>
-          {{ isConnected() ? 'Disconnect' : 'Connect' }}
-        </button>
-      </div>
-    </div>
-
-    @if (isConnected()) {
-    <div class="header-info">
-      <div class="info-pill">
-        <span class="material-icons">dns</span>
-        <span>{{ serverAddress() }}</span>
-        </div>
-        <div class="info-pill">
-          <span class="material-icons">sensors</span>
-          <span>{{ sensorCount() }} Sensors</span>
-        </div>
-        <div class="info-pill">
-          <span class="material-icons">update</span>
-          <span>Live Updates</span>
-        </div>
-      </div>
+        <div class="header-right">
+          @if (user()) {
+  <div class="user-info">
+    @if (user()?.picture) {
+    <img [src]="user()?.picture" [alt]="user()?.name" class="user-avatar">
     }
+    <span class="user-name">{{ user()?.name || user()?.email }}</span>
+  </div>
+  }
+
+  @if (isConnected()) {
+  <button
+    class="btn btn-success"
+    (click)="openRegistrationModal()">
+    <span class="material-icons">add</span>
+    Add Sensor
+  </button>
+  }
+
+  <button
+    class="btn btn-primary"
+    (click)="isConnected() ? disconnect() : openConnectionModal()"
+    [disabled]="isCheckingConnection()">
+    <span class="material-icons">{{ isConnected() ? 'link_off' : 'link' }}</span>
+  {{ isConnected() ? 'Disconnect' : 'Connect' }}
+  </button>
+
+  <button class="btn btn-secondary" (click)="logout()">
+    <span class="material-icons">logout</span>
+    Logout
+  </button>
+</div>
+</div>
+
+@if (isConnected()) {
+  <div class="header-info">
+    <div class="info-pill">
+      <span class="material-icons">dns</span>
+      <span>{{ serverAddress() }}</span>
+    </div>
+    <div class="info-pill">
+      <span class="material-icons">sensors</span>
+      <span>{{ sensorCount() }} Sensors</span>
+    </div>
+    <div class="info-pill">
+      <span class="material-icons">update</span>
+      <span>Live Updates</span>
+    </div>
+  </div>
+  }
   </header>
 
   <!-- Main Content -->
   <main class="main-content">
     <!-- Checking Connection State -->
     @if (isCheckingConnection()) {
-    <div class="loading-state">
-      <div class="loading-content">
-        <div class="spinner-large"></div>
-        <h2>Checking Connection...</h2>
-        <p>Looking for existing Phidget connection</p>
-      </div>
+  <div class="loading-state">
+    <div class="loading-content">
+      <div class="spinner-large"></div>
+      <h2>Checking Connection...</h2>
+      <p>Looking for existing Phidget connection</p>
     </div>
-    }
+  </div>
+  }
 
-    <!-- Not Connected State -->
-    @if (!isCheckingConnection() && !isConnected()) {
-    <div class="empty-state">
-      <div class="empty-state-content">
-        <span class="material-icons empty-icon">cloud_off</span>
-        <h2>Not Connected</h2>
-        <p>Connect to your PhidgetSBC4 to start monitoring sensors</p>
-        <button class="btn btn-large btn-gradient" (click)="openConnectionModal()">
-          <span class="material-icons">link</span>
-          Connect Now
-        </button>
-      </div>
+  <!-- Not Connected State -->
+  @if (!isCheckingConnection() && !isConnected()) {
+  <div class="empty-state">
+    <div class="empty-state-content">
+      <span class="material-icons empty-icon">cloud_off</span>
+      <h2>Not Connected</h2>
+      <p>Connect to your PhidgetSBC4 to start monitoring sensors</p>
+      <button class="btn btn-large btn-gradient" (click)="openConnectionModal()">
+        <span class="material-icons">link</span>
+        Connect Now
+      </button>
     </div>
-    }
+  </div>
+  }
 
-    <!-- No Sensors State -->
-    @if (!isCheckingConnection() && isConnected() && sensorCount() === 0) {
-    <div class="empty-state">
-      <div class="empty-state-content">
-        <span class="material-icons empty-icon">sensor_occupied</span>
-        <h2>No Sensors Registered</h2>
-        <p>Click "Add Sensor" to register your first Phidget sensor</p>
-        <button class="btn btn-large btn-success" (click)="openRegistrationModal()">
-          <span class="material-icons">add</span>
-          Add Your First Sensor
-        </button>
-      </div>
+  <!-- No Sensors State -->
+  @if (!isCheckingConnection() && isConnected() && sensorCount() === 0) {
+  <div class="empty-state">
+    <div class="empty-state-content">
+      <span class="material-icons empty-icon">sensor_occupied</span>
+      <h2>No Sensors Registered</h2>
+      <p>Click "Add Sensor" to register your first Phidget sensor</p>
+      <button class="btn btn-large btn-success" (click)="openRegistrationModal()">
+        <span class="material-icons">add</span>
+        Add Your First Sensor
+      </button>
     </div>
-    }
+  </div>
+  }
 
-    <!-- Sensors Grid -->
-    @if (!isCheckingConnection() && isConnected() && sensorCount() > 0) {
-    <div class="sensors-grid">
-      @for (sensor of sensors(); track sensor.sensorId) {
+  <!-- Sensors Grid -->
+  @if (!isCheckingConnection() && isConnected() && sensorCount() > 0) {
+  <div class="sensors-grid">
+    @for (sensor of sensors(); track sensor.sensorId) {
     <app-sensor-card
       [sensor]="sensor"
       (delete)="onDeleteSensor(sensor.sensorId, sensor.sensorName)">
     </app-sensor-card>
     }
-    </div>
-    }
+  </div>
+  }
   </main>
 
   <!-- Connection Modal -->
@@ -122,5 +180,6 @@
     (register)="onRegisterSensor($event)"
     (close)="closeRegistrationModal()">
   </app-sensor-registration-modal>
+  }
   }
 </div>
